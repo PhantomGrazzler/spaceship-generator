@@ -1,0 +1,51 @@
+super ionizing engine
+small rocket engine
+big rocket engine
+lightspeed engine
+small V-shaped wings
+X-style wings
+large plane wings
+falcon-style fuselage
+small streamline fuselage
+tie-fighter fuselage
+large cabin
+small cabin
+liquid armor
+100% energy field armor
+laser armor
+rocket resistant armor
+super laser shield
+ionizing shield
+laser cannon weapon
+rocket launcher weapon
+bubble gum launcher weapon
+string tokens cannon weapon
+fluffy engine
+car engine
+two-stroke engine
+jet engine
+steam engine
+nuclear fusion engine
+turbo-charged engine
+flappy wings
+bird wings
+chicken wings
+Y-style wings
+curved wings
+space wings
+car fuselage
+wooden cabin
+titanium cabin
+gingerbread cabin
+plate-mail armor
+chain link armor
+kevlar armor
+cling wrap armor
+protective armor
+swiss cheese armor
+sword weapon
+battering ram weapon
+broom weapon
+golf club weapon
+trebuchet weapon
+plasma launcher weapon

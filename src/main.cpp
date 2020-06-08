@@ -12,6 +12,8 @@ template<typename T>
 concept collection = requires( T coll )
 {
     coll.front();
+    coll.empty();
+    typename T::value_type;
 };
 
 template<collection Collection_t>
@@ -81,7 +83,17 @@ public:
 
     std::optional<std::string> GetWing() const
     {
-        return GetFront( m_wingsParts );
+        std::uniform_int_distribution<std::size_t> dist{ 0, m_wingsParts.size() };
+        const auto selection = dist( m_randomDevice );
+
+        if ( selection == m_wingsParts.size() )
+        {
+            return std::nullopt;
+        }
+        else
+        {
+            return m_wingsParts.at( selection );
+        }
     }
 
     std::string GetArmour() const
@@ -91,8 +103,8 @@ public:
 
     std::vector<std::string> GetWeapons() const
     {
-        std::uniform_int_distribution<decltype( m_weaponParts.size() )> dist( 0, 4 );
-        const auto numWeapons = std::min( dist( m_randomDevice ), m_weaponParts.size() );
+        const auto numWeapons =
+            std::min( m_weaponDistribution( m_randomDevice ), m_weaponParts.size() );
         const auto beginWeapon = m_weaponParts.begin();
 
         return { beginWeapon, beginWeapon + numWeapons };
@@ -101,6 +113,7 @@ public:
 private:
     mutable std::random_device m_randomDevice;
     std::mt19937 m_generator{ m_randomDevice() };
+    std::uniform_int_distribution<std::size_t> m_weaponDistribution{ 0, 4 };
     std::vector<std::string> m_engineParts;
     std::vector<std::string> m_fuselageParts;
     std::vector<std::string> m_cabinParts;
@@ -119,6 +132,7 @@ public:
         m_cabin = parts.GetCabin();
         m_armour = parts.GetArmour();
         m_large_wings = parts.GetWing();
+        m_small_wings = parts.GetWing();
         m_weapons = parts.GetWeapons();
     }
 
@@ -159,16 +173,16 @@ std::ostream& operator<<( std::ostream& os, const Spaceship& sp )
     return os;
 }
 
-int main( int argc, char* argv[] )
+int main()
 {
-    const std::string partsFileName( "vehicle_parts.txt" );
     SpaceshipParts parts;
-    parts.ReadFromFile( partsFileName );
+    parts.ReadFromFile( "vehicle_parts_additional.txt" );
+    Spaceship sp;
 
-    for ( auto i = 0; i < 5; i++ )
+    for ( auto i = 0; i < 4; i++ )
     {
         parts.Shuffle();
-        Spaceship sp;
+
         sp.Generate( parts );
         std::cout << sp;
     }
