@@ -1,100 +1,175 @@
 #include <string>
-#include <cstring>
 #include <iostream>
 #include <vector>
 #include <fstream>
 #include <random>
 #include <algorithm>
+#include <memory>
+#include <optional>
+#include <concepts>
 
-char partsFileName[128] = "vehicle_parts.txt";
+template<typename T>
+concept collection = requires( T coll )
+{
+    coll.front();
+};
 
-std::vector<std::string> allParts;
+template<collection Collection_t>
+auto GetFront( const Collection_t& collection ) -> std::optional<typename Collection_t::value_type>
+{
+    return ( collection.empty() ? std::nullopt : std::optional( collection.front() ) );
+}
+
+class SpaceshipParts
+{
+public:
+    void ReadFromFile( const std::string& filename )
+    {
+        std::ifstream file( filename );
+
+        if ( file.is_open() )
+        {
+            std::string line;
+            while ( std::getline( file, line ) )
+            {
+                if ( line.rfind( "engine" ) != std::string::npos )
+                    m_engineParts.push_back( line );
+                else if ( line.rfind( "fuselage" ) != std::string::npos )
+                    m_fuselageParts.push_back( line );
+                else if ( line.rfind( "cabin" ) != std::string::npos )
+                    m_cabinParts.push_back( line );
+                else if ( line.rfind( "wings" ) != std::string::npos )
+                    m_wingsParts.push_back( line );
+                else if ( line.rfind( "armor" ) != std::string::npos )
+                    m_armourParts.push_back( line );
+                else if ( line.rfind( "weapon" ) != std::string::npos )
+                    m_weaponParts.push_back( line );
+            }
+
+            std::cout << "parts loaded from: " << filename << '\n';
+        }
+        else
+        {
+            std::cout << "failed to load parts from: " << filename << '\n';
+        }
+    }
+
+    void Shuffle()
+    {
+        std::shuffle( m_engineParts.begin(), m_engineParts.end(), m_generator );
+        std::shuffle( m_fuselageParts.begin(), m_fuselageParts.end(), m_generator );
+        std::shuffle( m_cabinParts.begin(), m_cabinParts.end(), m_generator );
+        std::shuffle( m_wingsParts.begin(), m_wingsParts.end(), m_generator );
+        std::shuffle( m_armourParts.begin(), m_armourParts.end(), m_generator );
+        std::shuffle( m_weaponParts.begin(), m_weaponParts.end(), m_generator );
+    }
+
+    std::string GetEngine() const
+    {
+        return GetFront( m_engineParts ).value_or( "N/A" );
+    }
+
+    std::string GetFuselage() const
+    {
+        return GetFront( m_fuselageParts ).value_or( "N/A" );
+    }
+
+    std::string GetCabin() const
+    {
+        return GetFront( m_cabinParts ).value_or( "N/A" );
+    }
+
+    std::optional<std::string> GetWing() const
+    {
+        return GetFront( m_wingsParts );
+    }
+
+    std::string GetArmour() const
+    {
+        return GetFront( m_armourParts ).value_or( "N/A" );
+    }
+
+    std::vector<std::string> GetWeapons() const
+    {
+        std::uniform_int_distribution<decltype( m_weaponParts.size() )> dist( 0, 4 );
+        const auto numWeapons = std::min( dist( m_randomDevice ), m_weaponParts.size() );
+        const auto beginWeapon = m_weaponParts.begin();
+
+        return { beginWeapon, beginWeapon + numWeapons };
+    }
+
+private:
+    mutable std::random_device m_randomDevice;
+    std::mt19937 m_generator{ m_randomDevice() };
+    std::vector<std::string> m_engineParts;
+    std::vector<std::string> m_fuselageParts;
+    std::vector<std::string> m_cabinParts;
+    std::vector<std::string> m_wingsParts;
+    std::vector<std::string> m_armourParts;
+    std::vector<std::string> m_weaponParts;
+};
 
 class Spaceship
 {
 public:
-    static void GenerateShip( Spaceship* pOutShip );
-
-    void Print()
+    void Generate( const SpaceshipParts& parts )
     {
-        // print code...
+        m_engine = parts.GetEngine();
+        m_fuselage = parts.GetFuselage();
+        m_cabin = parts.GetCabin();
+        m_armour = parts.GetArmour();
+        m_large_wings = parts.GetWing();
+        m_weapons = parts.GetWeapons();
     }
+
+    friend std::ostream& operator<<( std::ostream& os, const Spaceship& sp );
 
 private:
-    std::string _engine;
-    std::string _fuselage;
-    std::string _cabin;
-    std::string _large_wings; // optional
-    std::string _small_wings; // optional
-    std::string _armor;
-    std::string _weapons[4]; // max weapon count is 4
+    std::string m_engine;
+    std::string m_fuselage;
+    std::string m_cabin;
+    std::optional<std::string> m_large_wings;
+    std::optional<std::string> m_small_wings;
+    std::string m_armour;
+    std::vector<std::string> m_weapons;
 };
 
-void Spaceship::GenerateShip( Spaceship* pOutShip )
+std::ostream& operator<<( std::ostream& os, const Spaceship& sp )
 {
-    std::vector<std::string> engineParts;
-    std::vector<std::string> fuselageParts;
-    std::vector<std::string> cabinParts;
-    std::vector<std::string> wingsParts;
-    std::vector<std::string> armorParts;
-    std::vector<std::string> weaponParts;
+    os << "\n+++ Generated spaceship +++\n  Engine: " << sp.m_engine
+       << "\n  Fuselage: " << sp.m_fuselage << "\n  Cabin: " << sp.m_cabin
+       << "\n  Large wings: " << sp.m_large_wings.value_or( "N/A" )
+       << "\n  Small wings: " << sp.m_small_wings.value_or( "N/A" ) << "\n  Armour: " << sp.m_armour
+       << "\n  Weapons (" << sp.m_weapons.size() << "): ";
 
-    for ( const auto& str : allParts )
+    if ( !sp.m_weapons.empty() )
     {
-        if ( str.rfind( "engine" ) != std::string::npos )
-            engineParts.push_back( str );
-        else if ( str.rfind( "fuselage" ) != std::string::npos )
-            fuselageParts.push_back( str );
-        else if ( str.rfind( "cabin" ) != std::string::npos )
-            cabinParts.push_back( str );
-        else if ( str.rfind( "wings" ) != std::string::npos )
-            wingsParts.push_back( str );
-        else if ( str.rfind( "armor" ) != std::string::npos )
-            armorParts.push_back( str );
-        else if ( str.rfind( "weapon" ) != std::string::npos )
-            weaponParts.push_back( str );
+        os << '\n';
+
+        for ( const auto& weapon : sp.m_weapons )
+        {
+            os << "    " << weapon << '\n';
+        }
+    }
+    else
+    {
+        os << "N/A\n";
     }
 
-    std::random_device rd;
-    std::mt19937 g( rd() );
-
-    std::shuffle( engineParts.begin(), engineParts.end(), g );
-    std::shuffle( fuselageParts.begin(), fuselageParts.end(), g );
-    std::shuffle( cabinParts.begin(), cabinParts.end(), g );
-    std::shuffle( wingsParts.begin(), wingsParts.end(), g );
-    std::shuffle( armorParts.begin(), armorParts.end(), g );
-    std::shuffle( weaponParts.begin(), weaponParts.end(), g );
-
-    // select parts:
-    pOutShip->_engine = engineParts[0];
-    pOutShip->_fuselage = fuselageParts[0];
-    pOutShip->_cabin = cabinParts[0];
-    pOutShip->_armor = armorParts[0];
-    pOutShip->_large_wings = wingsParts[0];
-    pOutShip->_weapons[0] = weaponParts[0];
+    return os;
 }
 
 int main( int argc, char* argv[] )
 {
-    if ( argc > 1 )
+    const std::string partsFileName( "vehicle_parts.txt" );
+    SpaceshipParts parts;
+    parts.ReadFromFile( partsFileName );
+
+    for ( auto i = 0; i < 5; i++ )
     {
-        strcpy( partsFileName, argv[1] );
+        parts.Shuffle();
+        Spaceship sp;
+        sp.Generate( parts );
+        std::cout << sp;
     }
-
-    std::cout << "parts loaded from: " << partsFileName << '\n';
-
-    std::ifstream file( partsFileName );
-    if ( file.is_open() )
-    {
-        std::string line;
-        while ( std::getline( file, line ) )
-        {
-            allParts.push_back( line );
-        }
-        file.close();
-    }
-
-    Spaceship sp;
-    Spaceship::GenerateShip( &sp );
-    sp.Print();
 }
